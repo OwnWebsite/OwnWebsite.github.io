@@ -5,4 +5,207 @@
 
 Use this website to set up your own website.
   <p style='font-size:3em;text-align:center'>OwnWebsite</p>
-  
+  <p id=tools></p>
+<script>
+var username = sessionStorage.getItem("owus");
+if (username == null)
+	document.querySelector("#tools").innerHTML = "Please sign in first.";
+else {
+	var hash = location.hash;
+	if (hash == "" || hash == "#")
+	{
+		location.hash = "#tree/";
+		location.reload();
+	};
+	if (hash.substring(0,6) == "#tree/")
+	{
+		var path = username + "/" + hash.substring(6);
+		document.querySelector("#tools").innerHTML = "File list   <span id=fpath><a href=# onclick=javascript:hashto('#tree/');>main</a></span><br><hr>";
+		var i = 1;
+		var spath = path.split("/");
+		while (i < spath.length)
+		{
+			var str = "/<a href=# onclick=javascript:hashto('#tree";
+
+			var j = 1;
+			while (j < i)
+			{
+				str += "/" + spath[j];
+
+				j++;
+			};
+			str += "');>" + spath[i] + "</a>";
+			document.querySelector("#fpath").innerHTML += str;
+			i++;
+		}
+		var file_list = GetData(path);
+		if (typeof(file_list) == "number")
+		{
+			document.querySelector("#tools").innerHTML = "Error Report <a href=# onclick=javascript:hashto('#tree/');>main</a><br><hr><div style='text-align:center'>Error: Cannot catch the file from the server.<br>HTTP Status:" + file_list + "</div>";
+		};
+		var i = 0;
+		while (i < file_list.length)
+		{
+			if (file_list[i].type == "file")
+				document.querySelector("#tools").innerHTML += "<div><img src=https://pig-cmd.github.io/img/file.png height=16px width=16px alt=File><a href=# onclick=javascript:hashto('blob/" + file_list[i].path.substring(username.length+1) + "');>" + file_list[i].name + "</a></div>";
+				else
+					document.querySelector("#tools").innerHTML += "<div><img src=https://pig-cmd.github.io/img/folder.png height=16px width=16px alt=Folder><a href=# onclick=javascript:hashto('tree/" + file_list[i].path.substring(username.length+1) + "');>" + file_list[i].name + "</a></div>";			
+			i++;
+		}
+	};
+	if (hash.substring(0,6) == "#blob/")
+	{
+		var path = username + "/" + hash.substring(6);
+		document.querySelector("#tools").innerHTML = "File list   <span id=fpath><a href=# onclick=javascript:hashto('#tree/');>main</a></span><br><hr>";
+		var i = 1;
+		var spath = path.split("/");
+		while (i < (spath.length-1))
+		{
+			var str = "/<a href=# onclick=javascript:hashto('#tree";
+
+			var j = 1;
+			while (j < (i-1))
+			{
+				str += "/" + spath[j];
+
+				j++;
+			};
+			str += "');>" + spath[i] + "</a>";
+			document.querySelector("#fpath").innerHTML += str;
+			i++;
+		}
+		document.querySelector("#fpath").innerHTML += "/" + spath[i];
+		var file_list = GetData(path);
+		if (typeof(file_list) == "number")
+		{
+			document.querySelector("#tools").innerHTML = "Error Report <a href=# onclick=javascript:hashto('#tree/');>main</a><br><hr><div style='text-align:center'>Error: Cannot catch the file from the server.<br>HTTP Status:" + file_list + "</div>";
+		};
+		var i = 0;
+		if (file_list.type != "file")
+			hashto("#tree/" + path);	
+		else
+		{
+			var file_obj = file_list;
+			console.log(file_obj);
+			if (file_obj.encoding == "base64")
+			{
+				var file_content = atob(file_obj.content);
+				document.querySelector("#tools").innerHTML += "<div style='text-align:right'><input type=button value=Edit onclick=javascript:hashto('#edit/" + path.substring(username.length+1) + "');><input type=button value=Download onclick=javascript:download_page();><input type=button value=Back onclick=javascript:backpage('tree');></div><hr><textarea id=code cols=180 rows=80 readonly>" + file_content + "</textarea>";	
+			};
+		};			
+	};
+	if (hash.substring(0,6) == "#edit/")
+	{
+		var path = username + "/" + hash.substring(6);
+		document.querySelector("#tools").innerHTML = "File list   <span id=fpath><a href=# onclick=javascript:hashto('#tree/');>main</a></span><br><hr>";
+		var i = 1;
+		var spath = path.split("/");
+		while (i < (spath.length-1))
+		{
+			var str = "/<a href=# onclick=javascript:hashto('#tree";
+
+			var j = 1;
+			while (j < (i-1))
+			{
+				str += "/" + spath[j];
+
+				j++;
+			};
+			str += "');>" + spath[i] + "</a>";
+			document.querySelector("#fpath").innerHTML += str;
+			i++;
+		}
+		document.querySelector("#fpath").innerHTML += "/" + spath[i];
+		var file_list = GetData(path);
+		if (typeof(file_list) == "number")
+		{
+			document.querySelector("#tools").innerHTML = "Error Report <a href=# onclick=javascript:hashto('#tree/');>main</a><br><hr><div style='text-align:center'>Error: Cannot catch the file from the server.<br>HTTP Status:" + file_list + "</div>";
+		};
+		var i = 0;
+		if (file_list.type != "file")
+			hashto("#tree/" + path);	
+		else
+		{
+			var file_obj = file_list;
+			console.log(file_obj);
+			if (file_obj.encoding == "base64")
+			{
+				var file_content = atob(file_obj.content);
+				document.querySelector("#tools").innerHTML += "<div style='text-align:right'><input type=button value=Back onclick=javascript:backpage();></div><hr><textarea id=code cols=180 rows=60>" + file_content + "</textarea><br><hr><input type=button value=Commit onclick=javascript:commit_code();><input type=button value=Cancel onclick=javascript:backpage('blob');>";	
+			};
+		};			
+	};
+};
+function GetData(path,argument)
+{
+	argument = (typeof(argument) == "undefined")?"":argument;
+	var xhr = new XMLHttpRequest();
+	xhr.open("GET","https://api.github.com/repos/OwnWebsite/OwnWebsite.github.io/contents/" + path + "?access_token=" + atob("Z2hwX0JreDRFR0I4bGROZ1dOUTduVTg4RGttOTFIaTBLaDJLUlNTMg==") + argument + "&rand=" + Math.random(),false);
+	xhr.send();
+	if (xhr.status == 200)
+		return JSON.parse(xhr.response);
+	else
+		return xhr.status;
+};
+function PutData(path,argument)
+{
+	argument = (typeof(argument) == "undefined")?"":argument;
+	var xhr = new XMLHttpRequest();
+	xhr.open("PUT","https://api.github.com/repos/OwnWebsite/OwnWebsite.github.io/contents/" + path + "?access_token=" + atob("Z2hwX0JreDRFR0I4bGROZ1dOUTduVTg4RGttOTFIaTBLaDJLUlNTMg==") + "&rand=" + Math.random(),false);
+	xhr.send(argument);
+	return xhr;
+};
+function hashto(h)
+{
+	location.hash = h;
+	location.reload();
+};
+function download_page()
+{
+	var path = location.hash.substring(6);
+	var spath = path.split("/");
+	var a = document.createElement("a");
+	a.href = "https://OwnWebsite.github.io/" + sessionStorage.getItem('owus') + "/" + path;
+	a.target = "_blank";
+	a.download = spath[spath.length-1];
+	a.click();
+};
+function backpage(str)
+{
+	var path = location.hash.substring(6);
+	var spath = path.split("/");
+	var i = 0;
+	var str = "#" + str + "/";
+	if (str == "tree")
+	{
+		while (i < (spath.length-1))
+		{
+			str += spath[i];
+			i++;
+		};
+	} else {
+		while (i < (spath.length))
+		{
+			str += spath[i];
+			i++;
+		};		
+	};
+	location.hash = str;	
+	location.reload();
+};
+function commit_code()
+{
+	var code = document.querySelector("#code").value;
+	var path = sessionStorage.owus + "/" + location.hash.substring(6);
+	var sha = GetData(path).sha;
+	var obj = PutData(path,JSON.stringify({message:"Update by using API",content:btoa(code),sha:sha}));
+	if (obj.status == 200)
+	{
+		alert("Commit successful.");
+		backpage("blob");
+	} else {
+		alert("Failed to commit.");
+		
+	};
+};
+</script>
