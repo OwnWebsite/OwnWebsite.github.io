@@ -1,0 +1,1 @@
+%23include%20%3Cstdio.h%3E%0Aint%20main%28void%29%20%7B%0A%09int%20result%20%3D%200%3B%0A%09int%20i%20%3D%201%3B%0A%09while%20%28i%20%3C%2026%29%20%7B%0A%09%09result%20+%3D%20i%3B%0A%09%09i++%3B%0A%09%7D%3B%0A%09printf%28%22%25d%22%2Cresult%29%3B%0A%7D
