@@ -183,6 +183,8 @@ else {
 		document.querySelector("#fpath").innerHTML += "/" + spath[i] + "";
 		document.querySelector("#tools").innerHTML += "<div style='text-align:right'><input type=button value=Back onclick=javascript:backpage();></div><hr>Path:   main/<input type=text placeholder=path maxlength=240 id=file_path value=" + folder_path + "><br><textarea id=code cols=180 rows=60></textarea><br><hr><input type=button value=Commit onclick=javascript:commit_code(false);><input type=button value=Cancel onclick=javascript:backpage('tree');>";				
 	};
+	if (hash.substring(0,10) == "#undefined")
+		hashto("#tree/");
 };
 function GetData(path,argument)
 {
