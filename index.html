@@ -110,7 +110,7 @@ else {
 			var file_obj = file_list;
 			if (file_obj.encoding == "base64")
 			{
-				console.log(file_obj,file_obj.content,atob(file_obj.content));
+				
 				var file_content = unescape(atob(file_obj.content));
 				console.log(file_content);
 				document.querySelector("#tools").innerHTML += "<div style='text-align:right'><input type=button value=Edit onclick=javascript:hashto('#edit/" + path.substring(username.length+1) + "');><input type=button value=View onclick=javascript:view_page();><input type=button value=Delete onclick=javascript:delete_file();><input type=button value=Back onclick=javascript:backpage('tree');></div><hr><textarea id=code cols=180 rows=80 readonly>" + file_content + "</textarea>";	
@@ -292,7 +292,7 @@ function commit_code(bool = true)
 		if (bool)
 			backpage("blob");
 		else {
-			hashto("#blob/" + path.substring(sessionStorage.owus.length+1));
+			hashto("#blob/" + file_path.substring(sessionStorage.owus.length+1));
 		};
 	} else {
 		alert("Failed to commit.");
