@@ -103,7 +103,7 @@ else {
 			document.querySelector("#tools").innerHTML = "Error Report <a href=# onclick=javascript:hashto('#tree/');>main</a><br><hr><div style='text-align:center'>Error: Cannot catch the file from the server.<br>HTTP Status:" + file_list + "</div>";
 		};
 		var i = 0;
-		if (file_list.type != "file")
+		if (file_list.type == "dir")
 			hashto("#tree/" + path);	
 		else
 		{
