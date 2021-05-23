@@ -1,12 +1,21 @@
-<html>
+ <html>
   <meta charset="utf-8">
   <title>OwnWebsite</title>
   
 
 Use this website to set up your own website.
+<p id=rate_limit>Remaining API request times:</p>
   <p style='font-size:3em;text-align:center'>OwnWebsite</p>
   <p id=tools></p>
 <script>
+var xhr = new XMLHttpRequest();
+xhr.open("GET","https://api.github.com/rate_limit?access_token=" + GetAccessToken(),false);
+xhr.send();
+if (xhr.status == 200 || xhr.status == 201 || xhr.status == 202 || xhr.status == 203 || xhr.status == 204 || xhr.status == 301 || xhr.status == 302)
+	document.querySelector("#rate_limit").innerHTML += JSON.parse(xhr.responseText).resources.core.remaining;
+else
+	document.querySelector("#rate_limit").innerHTML += 0;
+sessionStorage.owus = "test";
 var username = sessionStorage.getItem("owus");
 if (username == null)
 	document.querySelector("#tools").innerHTML = "Please sign in first.";
@@ -19,8 +28,12 @@ else {
 	};
 	if (hash.substring(0,6) == "#tree/")
 	{
+		document.querySelector("#tools").innerHTML = "";
+		if (hash == "#tree/")
+			document.querySelector("#tools").innerHTML += "<div style='text-align:right' id=visit_website><input type=button value='Visit your website' onclick=javascript:view_page();></div><br><hr>";
 		var path = username + "/" + hash.substring(6);
-		document.querySelector("#tools").innerHTML = "File list   <span id=fpath><a href=# onclick=javascript:hashto('#tree/');>main</a></span><br><hr>";
+		document.querySelector("#tools").innerHTML += "File list   <span id=fpath><a href=# onclick=javascript:hashto('#tree/');>main</a></span><br><div style='text-align:right'><input type=button value='New file' onclick=javascript:newfile();></div><br><hr>";
+
 		var i = 1;
 		var spath = path.split("/");
 		while (i < spath.length)
@@ -38,11 +51,20 @@ else {
 			document.querySelector("#fpath").innerHTML += str;
 			i++;
 		}
-		var file_list = GetData(path);
+		var file_list = GetData(path,"rand="+Math.random());
 		if (typeof(file_list) == "number")
 		{
 			document.querySelector("#tools").innerHTML = "Error Report <a href=# onclick=javascript:hashto('#tree/');>main</a><br><hr><div style='text-align:center'>Error: Cannot catch the file from the server.<br>HTTP Status:" + file_list + "</div>";
+			var hash = location.hash;
+			if (hash == "#tree/" && file_list == 404)
+			{
+				PutData(username+"/index.html",JSON.stringify({message:"Default:Create by using API",content:btoa(escape(username + "'s website.")),sha:GetData(username + "/index.html").sha}));
+				location.reload();
+				//document.querySelector("#tools").innerHTML = "You haven't created any files.";
+			}
 		};
+		if (typeof(file_list.type) != "undefined" && file_list.type == "file")
+			hashto("#blob/" + path);
 		var i = 0;
 		while (i < file_list.length)
 		{
@@ -56,7 +78,7 @@ else {
 	if (hash.substring(0,6) == "#blob/")
 	{
 		var path = username + "/" + hash.substring(6);
-		document.querySelector("#tools").innerHTML = "File list   <span id=fpath><a href=# onclick=javascript:hashto('#tree/');>main</a></span><br><hr>";
+		document.querySelector("#tools").innerHTML = "File path   <span id=fpath><a href=# onclick=javascript:hashto('#tree/');>main</a></span><br><hr>";
 		var i = 1;
 		var spath = path.split("/");
 		while (i < (spath.length-1))
@@ -86,18 +108,19 @@ else {
 		else
 		{
 			var file_obj = file_list;
-			console.log(file_obj);
 			if (file_obj.encoding == "base64")
 			{
-				var file_content = atob(file_obj.content);
-				document.querySelector("#tools").innerHTML += "<div style='text-align:right'><input type=button value=Edit onclick=javascript:hashto('#edit/" + path.substring(username.length+1) + "');><input type=button value=Download onclick=javascript:download_page();><input type=button value=Back onclick=javascript:backpage('tree');></div><hr><textarea id=code cols=180 rows=80 readonly>" + file_content + "</textarea>";	
+				console.log(file_obj,file_obj.content,atob(file_obj.content));
+				var file_content = unescape(atob(file_obj.content));
+				console.log(file_content);
+				document.querySelector("#tools").innerHTML += "<div style='text-align:right'><input type=button value=Edit onclick=javascript:hashto('#edit/" + path.substring(username.length+1) + "');><input type=button value=View onclick=javascript:view_page();><input type=button value=Delete onclick=javascript:delete_file();><input type=button value=Back onclick=javascript:backpage('tree');></div><hr><textarea id=code cols=180 rows=80 readonly>" + file_content + "</textarea>";	
 			};
 		};			
 	};
 	if (hash.substring(0,6) == "#edit/")
 	{
 		var path = username + "/" + hash.substring(6);
-		document.querySelector("#tools").innerHTML = "File list   <span id=fpath><a href=# onclick=javascript:hashto('#tree/');>main</a></span><br><hr>";
+		document.querySelector("#tools").innerHTML = "File path   <span id=fpath><a href=# onclick=javascript:hashto('#tree/');>main</a></span><br><hr>";
 		var i = 1;
 		var spath = path.split("/");
 		while (i < (spath.length-1))
@@ -123,24 +146,49 @@ else {
 		};
 		var i = 0;
 		if (file_list.type != "file")
-			hashto("#tree/" + path);	
+			hashto("#tree/" + path.substring(username.length+1));	
 		else
 		{
 			var file_obj = file_list;
-			console.log(file_obj);
+			//console.log(file_obj);
 			if (file_obj.encoding == "base64")
 			{
-				var file_content = atob(file_obj.content);
-				document.querySelector("#tools").innerHTML += "<div style='text-align:right'><input type=button value=Back onclick=javascript:backpage();></div><hr><textarea id=code cols=180 rows=60>" + file_content + "</textarea><br><hr><input type=button value=Commit onclick=javascript:commit_code();><input type=button value=Cancel onclick=javascript:backpage('blob');>";	
+				var file_content = unescape(atob(file_obj.content));
+				document.querySelector("#tools").innerHTML += "<div style='text-align:right'><input type=button value=Back onclick=javascript:backpage();></div><hr>Path:   main/<input type=text placeholder=path maxlength=240 id=file_path value=" + path.substring(username.length+1) + "><br><textarea id=code cols=180 rows=60>" + file_content + "</textarea><br><hr><input type=button value=Commit onclick=javascript:commit_code();><input type=button value=Cancel onclick=javascript:backpage('blob');>";	
 			};
 		};			
+	};
+	if (hash.substring(0,9) == "#newfile/")
+	{
+		var folder_path = hash.substring(9);
+		var path = username + "/" + hash.substring(9);
+		document.querySelector("#tools").innerHTML = "File path   <span id=fpath><a href=# onclick=javascript:hashto('#tree/');>main</a></span><br><hr>";
+		var i = 1;
+		var spath = path.split("/");
+		while (i < (spath.length-1))
+		{
+			var str = "/<a href=# onclick=javascript:hashto('#tree";
+
+			var j = 1;
+			while (j < (i-1))
+			{
+				str += "/" + spath[j];
+
+				j++;
+			};
+			str += "');>" + spath[i] + "</a>";
+			document.querySelector("#fpath").innerHTML += str;
+			i++;
+		}
+		document.querySelector("#fpath").innerHTML += "/" + spath[i] + "";
+		document.querySelector("#tools").innerHTML += "<div style='text-align:right'><input type=button value=Back onclick=javascript:backpage();></div><hr>Path:   main/<input type=text placeholder=path maxlength=240 id=file_path value=" + folder_path + "><br><textarea id=code cols=180 rows=60></textarea><br><hr><input type=button value=Commit onclick=javascript:commit_code(false);><input type=button value=Cancel onclick=javascript:backpage('tree');>";				
 	};
 };
 function GetData(path,argument)
 {
 	argument = (typeof(argument) == "undefined")?"":argument;
 	var xhr = new XMLHttpRequest();
-	xhr.open("GET","https://api.github.com/repos/OwnWebsite/OwnWebsite.github.io/contents/" + path + "?access_token=" + atob("Z2hwX0JreDRFR0I4bGROZ1dOUTduVTg4RGttOTFIaTBLaDJLUlNTMg==") + argument + "&rand=" + Math.random(),false);
+	xhr.open("GET","https://api.github.com/repos/OwnWebsite/OwnWebsite.github.io/contents/" + path + "?access_token=" + GetAccessToken() + "&" + argument + "&rand=" + Math.random(),false);
 	xhr.send();
 	if (xhr.status == 200)
 		return JSON.parse(xhr.response);
@@ -151,7 +199,7 @@ function PutData(path,argument)
 {
 	argument = (typeof(argument) == "undefined")?"":argument;
 	var xhr = new XMLHttpRequest();
-	xhr.open("PUT","https://api.github.com/repos/OwnWebsite/OwnWebsite.github.io/contents/" + path + "?access_token=" + atob("Z2hwX0JreDRFR0I4bGROZ1dOUTduVTg4RGttOTFIaTBLaDJLUlNTMg==") + "&rand=" + Math.random(),false);
+	xhr.open("PUT","https://api.github.com/repos/OwnWebsite/OwnWebsite.github.io/contents/" + path + "?access_token=" + GetAccessToken() + "&rand=" + Math.random(),false);
 	xhr.send(argument);
 	return xhr;
 };
@@ -160,15 +208,32 @@ function hashto(h)
 	location.hash = h;
 	location.reload();
 };
-function download_page()
+function view_page()
 {
 	var path = location.hash.substring(6);
 	var spath = path.split("/");
 	var a = document.createElement("a");
 	a.href = "https://OwnWebsite.github.io/" + sessionStorage.getItem('owus') + "/" + path;
 	a.target = "_blank";
-	a.download = spath[spath.length-1];
 	a.click();
+};
+function delete_file()
+{
+	var path = sessionStorage.owus + "/" + location.hash.substring(6);
+	if(confirm("Are you sure you want to delete this file?"))
+	{
+		var sha = GetData(path).sha;		
+		var xhr = new XMLHttpRequest();
+		xhr.open("DELETE","https://api.github.com/repos/OwnWebsite/OwnWebsite.github.io/contents/" + path + "?access_token=" + GetAccessToken() + "&rand=" + Math.random(),false);
+		xhr.send(JSON.stringify({message:"Delete by using API",sha:sha}));
+		if (xhr.status == 200 || xhr.status == 201)
+		{
+			alert("Delete successful.");
+			backpage("tree");
+		} else {
+			alert("Failed to delete.");
+		}
+	}
 };
 function backpage(str)
 {
@@ -176,36 +241,73 @@ function backpage(str)
 	var spath = path.split("/");
 	var i = 0;
 	var str = "#" + str + "/";
-	if (str == "tree")
+	if (str == "#tree/")
 	{
 		while (i < (spath.length-1))
 		{
-			str += spath[i];
+			str += spath[i] + "/";
 			i++;
 		};
 	} else {
 		while (i < (spath.length))
 		{
-			str += spath[i];
+			str += spath[i] + "/";
 			i++;
-		};		
+		};	
+		str = str.substring(0,str.length-1);	
 	};
 	location.hash = str;	
 	location.reload();
 };
-function commit_code()
+function commit_code(bool = true)
 {
 	var code = document.querySelector("#code").value;
+	var file_path = sessionStorage.owus + "/" + document.querySelector("#file_path").value;
 	var path = sessionStorage.owus + "/" + location.hash.substring(6);
-	var sha = GetData(path).sha;
-	var obj = PutData(path,JSON.stringify({message:"Update by using API",content:btoa(code),sha:sha}));
-	if (obj.status == 200)
+	var sha = GetData(file_path).sha;
+	if (typeof(sha) != "undefined" && (!bool))
 	{
+		alert("Failed to commit.");
+	}
+	var obj = PutData(file_path,JSON.stringify({message:"Update by using API",content:btoa(escape(code)),sha:sha}));
+	if (obj.status == 200 || obj.status == 201)
+	{
+		if (file_path != path && bool)
+		{
+			var sha = GetData(path).sha;		
+			var xhr = new XMLHttpRequest();
+			xhr.open("DELETE","https://api.github.com/repos/OwnWebsite/OwnWebsite.github.io/contents/" + path + "?access_token=" + GetAccessToken() + "&rand=" + Math.random(),false);
+			xhr.send(JSON.stringify({message:"Delete by using API",sha:sha}));
+			if (xhr.status == 200 || xhr.status == 201)
+			{
+				alert("Commit successful.");
+				location.hash = "#blob/" + file_path.substring(sessionStorage.owus.length+1);
+				location.reload();
+			} else {
+				alert("Failed to delete.");
+				return;
+			}
+		}
 		alert("Commit successful.");
-		backpage("blob");
+		if (bool)
+			backpage("blob");
+		else {
+			hashto("#blob/" + path.substring(sessionStorage.owus.length+1));
+		};
 	} else {
 		alert("Failed to commit.");
 		
 	};
+};
+function newfile()
+{
+	var path = location.hash.substring(6);
+	hashto("#newfile/" + path);
+};
+function GetAccessToken()
+{
+	if (typeof(window.access_token_array) == "undefined")
+		window.access_token_array = [atob("Z2hwX0JreDRFR0I4bGROZ1dOUTduVTg4RGttOTFIaTBLaDJLUlNTMg=="),atob("Z2hwX0lIMUJnZFEyaU5BRW5ZSWtzZWpZTHJHRnJZaDQzdDJVN3VHeg==")];
+	return window.access_token_array[parseInt(Math.random()*window.access_token_array.length)];
 };
 </script>
